@@ -1,6 +1,7 @@
 # 営業リスト作成スクリプト
 
 Google Maps Platform の Places API を使って、営業リストを作成できます。
+Google Map で店舗を検索して、リストを作成して、、、みたいなことをされている方におすすめです。
 
 You can create sales list using Google Maps Platform - Places API.
 
