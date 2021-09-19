@@ -53,3 +53,7 @@ touch searchTexts.txt
 ```
 node .
 ```
+
+正常に実行されると、
+`search-result.tsv`
+が作成されます。
