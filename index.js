@@ -72,10 +72,12 @@ const promiseFetch = async (fetchUrl) => {
         responseJson = await response.json();
         if (responseJson.status === "INVALID_REQUEST") {
           console.log("Reponse status is INVALID_REQUEST yet.");
-        }
-        if (responseJson.status === "OK") {
+        } else if (responseJson.status === "OK") {
           resolve(responseJson);
           clearInterval(obj);
+        } else {
+          console.log(responseJson);
+          reject();
         }
       }, 1000);
     } catch (e) {
