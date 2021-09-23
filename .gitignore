@@ -5,3 +5,7 @@ index_.js
 .env
 searchTexts.txt
 search-result.tsv
+search_result/
+search-areas.txt
+search-filters.txt
+search-keywords.txt

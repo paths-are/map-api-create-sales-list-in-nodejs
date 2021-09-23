@@ -1,11 +1,31 @@
-import fetch from "node-fetch";
 import fs from "fs";
 import "dotenv/config";
+import fetch from "node-fetch";
+import log4js from "log4js";
+
+log4js.configure({
+  appenders: {
+    app: { type: "file", filename: "app.log" },
+  },
+  categories: {
+    default: { appenders: ["app"], level: "debug" },
+  },
+});
+
+var logger = log4js.getLogger();
+logger.level = "debug";
+// logger.debug('debug');
+// logger.info('info');
+// logger.warn('warn');
+// logger.error('error');
+// logger.fatal('fatal');
 
 // 共通情報
 const API_KEY = process.env.API_KEY;
+const SEARCH_AREAS_INPUT = "search-areas.txt";
+const SEARCH_KEYWORDS_INPUT = "search-keywords.txt";
+const SEARCH_FILTERS_INPUT = "search-filters.txt";
 const TSV_FILE_NAME = "search-result";
-const SEARCH_TEXTS_FILE = "searchTexts.txt";
 
 /**
  * TextSearch
@@ -13,7 +33,7 @@ const SEARCH_TEXTS_FILE = "searchTexts.txt";
  * @param {string} searchText 検索したい文字列 例）渋谷 整骨院
  * @returns {Array<string>} placeIds 取得した建物のplace_idリスト
  */
-const fetchPlaceIds = async (searchText) => {
+const fetchPlaceIds = async (searchText, filters) => {
   // 変数宣言
   let placeIds = [];
   const TEXT_SEARCH_URL =
@@ -29,7 +49,9 @@ const fetchPlaceIds = async (searchText) => {
   // nextPageTokenがreturnされる限り情報を取得し続け、placeIds[]にplace_idを追加していく。
   do {
     if (nextPageToken) {
-      console.log("nextPageToken--");
+      logger.info(`nextPageToken of ${searchText}--`);
+      logger.info(nextPageToken);
+      console.log(`nextPageToken of ${searchText}--`);
       console.log(nextPageToken);
       searchParams = new URLSearchParams({
         // query: searchText,
@@ -42,11 +64,19 @@ const fetchPlaceIds = async (searchText) => {
       // https://developers.google.com/maps/documentation/places/web-service/search-text#PlaceSearchPaging
       await sleep(1);
     }
-    console.log("fetch--");
+    logger.info(`fetching ${searchText}--`);
+    console.log(`fetching ${searchText}--`);
     responseJson = await promiseFetch(`${TEXT_SEARCH_URL}?${searchParams}`);
     results = responseJson.results;
     for (let result of results) {
-      placeIds.push(result.place_id);
+      if (filters.addressIn) {
+        if (result.formatted_address.search(filters.addressIn) !== -1) {
+          placeIds.push(result.place_id);
+        } else {
+        }
+      } else {
+        placeIds.push(result.place_id);
+      }
     }
     nextPageToken = responseJson.next_page_token;
   } while (nextPageToken);
@@ -64,6 +94,7 @@ const sleep = async (second) => {
 
 const promiseFetch = async (fetchUrl) => {
   console.log(fetchUrl);
+  logger.info(fetchUrl);
   return new Promise(async (resolve, reject) => {
     try {
       let response, responseJson;
@@ -71,17 +102,21 @@ const promiseFetch = async (fetchUrl) => {
         response = await fetch(fetchUrl);
         responseJson = await response.json();
         if (responseJson.status === "INVALID_REQUEST") {
+          logger.info("Reponse status is INVALID_REQUEST yet.");
           console.log("Reponse status is INVALID_REQUEST yet.");
         } else if (responseJson.status === "OK") {
           resolve(responseJson);
           clearInterval(obj);
         } else {
+          logger.info(responseJson);
           console.log(responseJson);
           reject();
         }
       }, 1000);
     } catch (e) {
       reject(e);
+      logger.info("error occured.");
+      logger.info(e);
       console.log(e);
     }
   });
@@ -105,7 +140,6 @@ const fetchDetail = async (placeId) => {
   const response = await fetch(`${PLACE_DETAILS_URL}?${searchParams}`);
   const responseJson = await response.json();
   const result = responseJson.result;
-  // console.log(result);
   return result;
 };
 
@@ -115,19 +149,28 @@ const fetchDetail = async (placeId) => {
 (async () => {
   const startTime = new Date();
   let searchTexts = [];
-  var text = fs.readFileSync(SEARCH_TEXTS_FILE, "utf8");
-  var lines = text.toString().split("\r\n");
-  for (var line of lines) {
-    searchTexts.push(line);
+  const areasInput = fs.readFileSync(SEARCH_AREAS_INPUT, "utf8");
+  const keywordsInput = fs.readFileSync(SEARCH_KEYWORDS_INPUT, "utf8");
+  const filtersInput = fs.readFileSync(SEARCH_FILTERS_INPUT, "utf8");
+  const filters = { addressIn: filtersInput.substr(10) };
+  const areasLines = areasInput.toString().split("\r\n");
+  const keywordsLines = keywordsInput.toString().split("\r\n");
+  for (var areaLine of areasLines) {
+    for (var keywordLine of keywordsLines) {
+      searchTexts.push(`${areaLine} ${keywordLine}`);
+    }
   }
   console.log(searchTexts);
+  logger.info("次のキーワードで検索します。");
+  logger.info(searchTexts);
 
   let placeInfo = [];
   for (let searchText of searchTexts) {
-    let placeIds = await fetchPlaceIds(searchText);
+    let placeIds = await fetchPlaceIds(searchText, filters);
     placeInfo.push({ searchText: searchText, placeIds: placeIds });
   }
-  console.log(placeInfo);
+  logger.info("placeInfo---");
+  logger.info(placeInfo);
 
   const titleArr = [
     "searchText",
@@ -161,46 +204,65 @@ const fetchDetail = async (placeId) => {
       // 既にfetchDetailしたidはスルーする。
       if (!fetchedIds.includes(id)) {
         const detail = await fetchDetail(id);
+        if (detail) {
+          logger.info(detail);
 
-        fetchedIds.push(id);
+          fetchedIds.push(id);
 
-        let openingHours;
-        if (detail.opening_hours !== undefined) {
-          openingHours = detail.opening_hours.weekday_text;
+          let openingHours;
+          if (detail.opening_hours) {
+            openingHours = detail.opening_hours.weekday_text;
+          } else {
+            openingHours = ["-", "-", "-", "-", "-", "-", "-"];
+          }
+
+          let reviews = JSON.stringify(detail.reviews);
+
+          const rowDataArr = [
+            info.searchText,
+            id,
+            detail.types,
+            detail.name,
+            detail.formatted_phone_number,
+            detail.formatted_address,
+            detail.business_status,
+            detail.opening_hours || "undefined",
+            openingHours[0],
+            openingHours[1],
+            openingHours[2],
+            openingHours[3],
+            openingHours[4],
+            openingHours[5],
+            openingHours[6],
+            detail.rating,
+            // detail.reviews,
+            reviews,
+            detail.user_ratings_total,
+            detail.website,
+            detail.url,
+          ];
+          const rowData = rowDataArr.join(`\t`);
+          // const rowData = `${info.searchText}\t${id}\t${detail.types}\t${detail.name}\t${detail.formatted_phone_number}\t${detail.formatted_address}\t${detail.business_status}\t${detail.opening_hours}\t${openingHours[0]}\t${openingHours[1]}\t${openingHours[2]}\t${openingHours[3]}\t${openingHours[4]}\t${openingHours[5]}\t${openingHours[6]}\t${detail.rating}\t${detail.reviews}\t${detail.user_ratings_total}\t${detail.website}\t${detail.url}`;
+          tsvData += rowData + "\n";
         } else {
-          openingHours = ["-", "-", "-", "-", "-", "-", "-"];
+          console.log(
+            `次のplaece_idはdetail情報を取得できませんでした。 place_id ---> ${id}`
+          );
+          logger.info(
+            `次のplaece_idはdetail情報を取得できませんでした。 place_id ---> ${id}`
+          );
         }
-        const rowDataArr = [
-          info.searchText,
-          id,
-          detail.types,
-          detail.name,
-          detail.formatted_phone_number,
-          detail.formatted_address,
-          detail.business_status,
-          detail.opening_hours,
-          openingHours[0],
-          openingHours[1],
-          openingHours[2],
-          openingHours[3],
-          openingHours[4],
-          openingHours[5],
-          openingHours[6],
-          detail.rating,
-          detail.reviews,
-          detail.user_ratings_total,
-          detail.website,
-          detail.url,
-        ];
-        const rowData = rowDataArr.join(`\t`);
-        // const rowData = `${info.searchText}\t${id}\t${detail.types}\t${detail.name}\t${detail.formatted_phone_number}\t${detail.formatted_address}\t${detail.business_status}\t${detail.opening_hours}\t${openingHours[0]}\t${openingHours[1]}\t${openingHours[2]}\t${openingHours[3]}\t${openingHours[4]}\t${openingHours[5]}\t${openingHours[6]}\t${detail.rating}\t${detail.reviews}\t${detail.user_ratings_total}\t${detail.website}\t${detail.url}`;
-        tsvData += rowData + "\n";
       }
     }
   }
+
   fs.writeFileSync(`${TSV_FILE_NAME}.tsv`, tsvData);
+
   const endTime = new Date();
   const excuteTime = (endTime - startTime) / 1000; /* ミリ秒 */
+
   console.log(`検索結果を[${TSV_FILE_NAME}.tsv]に出力しました。`);
   console.log(`実行時間 ---> ${excuteTime} 秒`);
+  logger.info(`検索結果を[${TSV_FILE_NAME}.tsv]に出力しました。`);
+  logger.info(`実行時間 ---> ${excuteTime} 秒`);
 })();

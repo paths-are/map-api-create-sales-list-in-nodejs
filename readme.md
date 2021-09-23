@@ -22,30 +22,51 @@ You can create sales list using Google Maps Platform - Places API.
 
 ## インストール - Installation
 
+次のコマンドを実行します。
+
 ```shell
 git clone https://github.com/paths-are/map-api-create-sales-list-in-nodejs.git
 cd map-api-create-sales-list-in-nodejs
 npm install
 ```
 
+次のコマンドを実行します。
+
 ```shell
 cp .env.sample
 ```
 
-.env にメモしておいた API キーを貼り付けます。
+作成された `.env` にメモしておいた API キーを貼り付けます。
+
+次のコマンドを実行します。
 
 ```shell
-touch searchTexts.txt
+cp search-areas_sample.txt search-areas.txt
+cp search-keywords_sample.txt search-keywords.txt
+cp search-filters_sample.txt search-filters.txt
 ```
 
-下記の内容を「searchTexts.txt」に貼り付けます。
+search-areas.txt には検索したい**場所**を記載します。
+search-keywords.txt には検索したい**キーワード**を記載します。
+search-filters.txt には検索時の**フィルター**を設定します。
+
+サンプルファイルをそのまま実行すると
+浅草 カレー
+浅草 ハンバーグ
+で検索された場所のうち、住所に'台東区'が記載されているデータのみ抽出します。
+
+<!-- ```shell
+touch searchTexts.txt
+``` -->
+
+<!-- 下記の内容を「searchTexts.txt」に貼り付けます。
 東京と大阪と名古屋でカレー屋さんを検索する場合の例です。
 
 ```
 東京　カレー
 大阪　カレー
 名古屋　カレー
-```
+``` -->
 
 ## 使い方 - How to Use
 
@@ -56,5 +77,10 @@ node .
 ```
 
 正常に実行されると、
+検索結果は
 `search-result.tsv`
-が作成されます。
+に出力されます。
+
+ログは
+`app.log`
+に出力されます。
