@@ -84,3 +84,14 @@ node .
 ログは
 `app.log`
 に出力されます。
+
+実行結果の出力ファイルは上書きされるので、再度実行する場合は、
+次のファイルは別の場所にコピーをしてから実行してください。
+
+```
+search-result.tsv
+app.log
+search-areas.txt
+search-keywords.txt
+search-filters.txt
+```
