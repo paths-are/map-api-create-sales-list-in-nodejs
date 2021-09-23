@@ -3,29 +3,63 @@ import "dotenv/config";
 import fetch from "node-fetch";
 import log4js from "log4js";
 
-log4js.configure({
-  appenders: {
-    app: { type: "file", filename: "app.log" },
-  },
-  categories: {
-    default: { appenders: ["app"], level: "debug" },
-  },
-});
-
-var logger = log4js.getLogger();
-logger.level = "debug";
-// logger.debug('debug');
-// logger.info('info');
-// logger.warn('warn');
-// logger.error('error');
-// logger.fatal('fatal');
-
 // 共通情報
 const API_KEY = process.env.API_KEY;
 const SEARCH_AREAS_INPUT = "search-areas.txt";
 const SEARCH_KEYWORDS_INPUT = "search-keywords.txt";
 const SEARCH_FILTERS_INPUT = "search-filters.txt";
-const TSV_FILE_NAME = "search-result";
+const SEARCH_RESULT_OUTPUT = "search-result.tsv";
+
+let logger;
+
+const initialize = () => {
+  const formateDate = (date) => {
+    date = new Date(date);
+
+    const pad = (n) => {
+      return n > 9 ? n : "0" + n;
+    };
+
+    return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(
+      date.getDate()
+    )}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(
+      date.getSeconds()
+    )}`;
+  };
+
+  const nowFormat = formateDate(new Date());
+  console.log(nowFormat);
+  const path = `search_result/${nowFormat}`;
+  if (fs.existsSync(path)) {
+    return false;
+  } else {
+    fs.mkdirSync(path);
+  }
+  log4js.configure({
+    appenders: {
+      app: { type: "file", filename: `${path}/app.log` },
+    },
+    categories: {
+      default: { appenders: ["app"], level: "debug" },
+    },
+  });
+
+  logger = log4js.getLogger();
+  logger.level = "debug";
+  return path;
+};
+
+const finalize = (srcArr, destDir) => {
+  for (const src of srcArr) {
+    fs.copyFile(src, `${destDir}/${src}`, fs.constants.COPYFILE_EXCL, (err) => {
+      if (err) {
+        throw err;
+      } else {
+        console.log("ファイルをコピーしました。");
+      }
+    });
+  }
+};
 
 /**
  * TextSearch
@@ -148,6 +182,15 @@ const fetchDetail = async (placeId) => {
  */
 (async () => {
   const startTime = new Date();
+
+  const searchResultDir = initialize();
+  if (!searchResultDir) {
+    console.log(
+      "フォルダが既に存在していたため、処理を中断しました。\n再度実行してください。"
+    );
+    return;
+  }
+
   let searchTexts = [];
   const areasInput = fs.readFileSync(SEARCH_AREAS_INPUT, "utf8");
   const keywordsInput = fs.readFileSync(SEARCH_KEYWORDS_INPUT, "utf8");
@@ -160,6 +203,7 @@ const fetchDetail = async (placeId) => {
       searchTexts.push(`${areaLine} ${keywordLine}`);
     }
   }
+  console.log("次のキーワードで検索します。");
   console.log(searchTexts);
   logger.info("次のキーワードで検索します。");
   logger.info(searchTexts);
@@ -256,13 +300,29 @@ const fetchDetail = async (placeId) => {
     }
   }
 
-  fs.writeFileSync(`${TSV_FILE_NAME}.tsv`, tsvData);
+  fs.writeFileSync(`${searchResultDir}/${SEARCH_RESULT_OUTPUT}`, tsvData);
+  console.log(
+    `検索結果を[${searchResultDir}/${SEARCH_RESULT_OUTPUT}]に出力しました。`
+  );
+  logger.info(
+    `検索結果を[${searchResultDir}/${SEARCH_RESULT_OUTPUT}]に出力しました。`
+  );
+
+  const srcArr = [
+    SEARCH_AREAS_INPUT,
+    SEARCH_KEYWORDS_INPUT,
+    SEARCH_FILTERS_INPUT,
+  ];
+  finalize(srcArr, searchResultDir);
+  console.log(
+    `今回の検索に利用したファイルは${searchResultDir}に格納しました。`
+  );
+  logger.info(
+    `今回の検索に利用したファイルは${searchResultDir}に格納しました。`
+  );
 
   const endTime = new Date();
   const excuteTime = (endTime - startTime) / 1000; /* ミリ秒 */
-
-  console.log(`検索結果を[${TSV_FILE_NAME}.tsv]に出力しました。`);
   console.log(`実行時間 ---> ${excuteTime} 秒`);
-  logger.info(`検索結果を[${TSV_FILE_NAME}.tsv]に出力しました。`);
   logger.info(`実行時間 ---> ${excuteTime} 秒`);
 })();
