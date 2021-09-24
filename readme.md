@@ -46,13 +46,13 @@ cp search-keywords_sample.txt search-keywords.txt
 cp search-filters_sample.txt search-filters.txt
 ```
 
-search-areas.txt には検索したい**場所**を記載します。
-search-keywords.txt には検索したい**キーワード**を記載します。
+search-areas.txt には検索したい**場所**を記載します。  
+search-keywords.txt には検索したい**キーワード**を記載します。  
 search-filters.txt には検索時の**フィルター**を設定します。
 
-サンプルファイルをそのまま実行すると
-浅草 カレー
-浅草 ハンバーグ
+サンプルファイルをそのまま実行すると  
+浅草 カレー  
+浅草 ハンバーグ  
 で検索された場所のうち、住所に'台東区'が記載されているデータのみ抽出します。
 
 <!-- ```shell
@@ -78,14 +78,10 @@ node .
 
 正常に実行されると、
 検索結果は
-`search-result.tsv`
-に出力されます。
+`./search_result/yyyymmdd_hhmmss`
+フォルダ配下に出力されます。
 
-ログは
-`app.log`
-に出力されます。
-
-実行結果の出力ファイルは上書きされるので、再度実行する場合は、
+<!-- 実行結果の出力ファイルは上書きされるので、再度実行する場合は、
 次のファイルは別の場所にコピーをしてから実行してください。
 
 ```
@@ -94,4 +90,4 @@ app.log
 search-areas.txt
 search-keywords.txt
 search-filters.txt
-```
+``` -->
