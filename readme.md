@@ -30,13 +30,15 @@ cd map-api-create-sales-list-in-nodejs
 npm install
 ```
 
+
 次のコマンドを実行します。
 
 ```shell
 cp .env.sample .env
 ```
 
-作成された `.env` にメモしておいた API キーを貼り付けます。
+作成された `.env` に**事前準備**でメモしておいた API キーを貼り付けます。
+
 
 次のコマンドを実行します。
 
@@ -56,19 +58,6 @@ search-filters.txt には検索時の**フィルター**を設定します。
 浅草 ハンバーグ  
 で検索された場所のうち、住所に'台東区'が記載されているデータのみ抽出します。
 
-<!-- ```shell
-touch searchTexts.txt
-``` -->
-
-<!-- 下記の内容を「searchTexts.txt」に貼り付けます。
-東京と大阪と名古屋でカレー屋さんを検索する場合の例です。
-
-```
-東京　カレー
-大阪　カレー
-名古屋　カレー
-``` -->
-
 ## 使い方 - How to Use
 
 次のコマンドを実行します。
@@ -81,14 +70,3 @@ node .
 検索結果は
 `./search_result/yyyymmdd_hhmmss`
 フォルダ配下に出力されます。
-
-<!-- 実行結果の出力ファイルは上書きされるので、再度実行する場合は、
-次のファイルは別の場所にコピーをしてから実行してください。
-
-```
-search-result.tsv
-app.log
-search-areas.txt
-search-keywords.txt
-search-filters.txt
-``` -->
