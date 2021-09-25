@@ -1,7 +1,7 @@
-# 営業リスト作成スクリプト
+# Google Map 検索ツール - Google Map Search Tool
 
-Google Maps Platform の Places API を使って、営業リストを作成できます。
-Google Map で店舗を検索して、リストを作成して、、、みたいなことをされている方におすすめです。
+Google Maps Platform の Places API を使い、キーワードで検索した建物情報一覧をtsvファイルで出力できます。
+Google Map で店舗を検索して、営業リストを作成して、、、みたいなことをされている方に大変おすすめのツールです。
 
 You can create sales list using Google Maps Platform - Places API.
 
@@ -33,7 +33,7 @@ npm install
 次のコマンドを実行します。
 
 ```shell
-cp .env.sample
+cp .env.sample .env
 ```
 
 作成された `.env` にメモしておいた API キーを貼り付けます。
@@ -44,6 +44,7 @@ cp .env.sample
 cp search-areas_sample.txt search-areas.txt
 cp search-keywords_sample.txt search-keywords.txt
 cp search-filters_sample.txt search-filters.txt
+mkdir search_result
 ```
 
 search-areas.txt には検索したい**場所**を記載します。  

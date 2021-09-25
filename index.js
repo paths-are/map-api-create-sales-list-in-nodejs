@@ -12,14 +12,22 @@ const SEARCH_RESULT_OUTPUT = "search-result.tsv";
 
 let logger;
 
+/**
+ * プロジェクトの初期化処理
+ * @overview 実行結果出力フォルダを作成する
+ * @returns string 実行結果出力フォルダへのパス
+ */
 const initialize = () => {
+  /**
+   * dateオブジェクトを文字列で返却する
+   * @param {object} date
+   * @returns string yyyymmdd_hhmmss
+   */
   const formateDate = (date) => {
     date = new Date(date);
-
     const pad = (n) => {
       return n > 9 ? n : "0" + n;
     };
-
     return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(
       date.getDate()
     )}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(
@@ -28,27 +36,23 @@ const initialize = () => {
   };
 
   const nowFormat = formateDate(new Date());
-  console.log(nowFormat);
+
   const path = `search_result/${nowFormat}`;
   if (fs.existsSync(path)) {
     return false;
   } else {
     fs.mkdirSync(path);
   }
-  log4js.configure({
-    appenders: {
-      app: { type: "file", filename: `${path}/app.log` },
-    },
-    categories: {
-      default: { appenders: ["app"], level: "debug" },
-    },
-  });
 
-  logger = log4js.getLogger();
-  logger.level = "debug";
   return path;
 };
 
+/**
+ * プロジェクトの終了時処理
+ * @overview 引数に指定したファイルを「実行結果出力フォルダ」へコピーする
+ * @param {Array<string>} srcArr
+ * @param {string} destDir
+ */
 const finalize = (srcArr, destDir) => {
   for (const src of srcArr) {
     fs.copyFile(src, `${destDir}/${src}`, fs.constants.COPYFILE_EXCL, (err) => {
@@ -113,6 +117,7 @@ const fetchPlaceIds = async (searchText, filters) => {
       }
     }
     nextPageToken = responseJson.next_page_token;
+    nextPageToken = null;
   } while (nextPageToken);
 
   return placeIds;
@@ -184,6 +189,19 @@ const fetchDetail = async (placeId) => {
   const startTime = new Date();
 
   const searchResultDir = initialize();
+
+  // ログ管理の初期設定
+  log4js.configure({
+    appenders: {
+      app: { type: "file", filename: `${searchResultDir}/app.log` },
+    },
+    categories: {
+      default: { appenders: ["app"], level: "debug" },
+    },
+  });
+  logger = log4js.getLogger();
+  logger.level = "debug";
+
   if (!searchResultDir) {
     console.log(
       "フォルダが既に存在していたため、処理を中断しました。\n再度実行してください。"
@@ -191,6 +209,7 @@ const fetchDetail = async (placeId) => {
     return;
   }
 
+  // 変数定義
   let searchTexts = [];
   const areasInput = fs.readFileSync(SEARCH_AREAS_INPUT, "utf8");
   const keywordsInput = fs.readFileSync(SEARCH_KEYWORDS_INPUT, "utf8");
@@ -260,7 +279,26 @@ const fetchDetail = async (placeId) => {
             openingHours = ["-", "-", "-", "-", "-", "-", "-"];
           }
 
-          let reviews = JSON.stringify(detail.reviews);
+          // let reviews = JSON.stringify(detail.reviews);
+          let reviews;
+          let tempReviews = "";
+          if (detail.reviews) {
+            reviews = ``;
+            for (let review of detail.reviews) {
+              tempReviews += [
+                `名前：${review.author_name}`,
+                `評価：${review.rating}`,
+                `内容：${review.text.replace(/\n/g,`\n　　　`)}`,
+                `日付：${review.relative_time_description}`,
+                `-------------------------------------------`,
+                ``,
+              ].join(`\n`);
+              tempReviews = tempReviews.replace(/"/g,`'`);
+            }
+            reviews += `"${tempReviews}"`;
+          } else {
+            reviews = "-";
+          }
 
           const rowDataArr = [
             info.searchText,
