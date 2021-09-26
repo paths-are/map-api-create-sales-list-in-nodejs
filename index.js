@@ -117,7 +117,6 @@ const fetchPlaceIds = async (searchText, filters) => {
       }
     }
     nextPageToken = responseJson.next_page_token;
-    nextPageToken = null;
   } while (nextPageToken);
 
   return placeIds;
